@@ -1,11 +1,17 @@
 {
   "name": "advent-of-code-2023",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
+    "day-1": "node ./day-1/1-1/index.js",
+    "day-23": "tsc ./day-23/23-1/index.ts && node ./day-23/23-1/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3"
+  }
 }
