@@ -3,3 +3,4 @@ function isNumber(x) {
 }
 
 module.exports = isNumber;
+module.exports.default = isNumber;
