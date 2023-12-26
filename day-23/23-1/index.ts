@@ -1,6 +1,6 @@
 import { readFile } from 'fs';
 import { join } from 'path';
-import { TEST_INPUT } from '../../utils/consts';
+import { INPUT, TEST_INPUT } from '../../utils/consts';
 
 const PATH = '.';
 const FOREST = '#';
@@ -19,71 +19,102 @@ type MapItem =
 type Coords = [number, number];
 type Map<T> = T[][];
 
-class TreeNode {
-  position: Coords;
-  distance: number;
-  constructor(position: Coords, distance: number) {
-    this.position = position;
-    this.distance = distance;
-  }
-  toString() {
-    return this.position.toString();
-  }
-}
-
-function getPositions([x, y]: Coords): Coords[] {
-  return [
-    [x, y - 1], // 0, up
-    [x + 1, y], // 1, right
-    [x, y + 1], // 2, down
-    [x - 1, y], // 3, left
-  ];
-}
-
 function getItemAt<T>(map: Map<T>, [x, y]: Coords) {
   const row = map[y];
   return row ? row[x] : undefined;
 }
 
-function getLongestPath<T>(map: Map<T>, from: Coords, to: Coords) {
-  let longestPath = 0;
-  const root = new TreeNode(from, 0);
-  const visited = new Set<string>();
-  const queue = [root];
-  visited.add(root.toString());
-
-  while (queue.length > 0) {
-    const currentRoot = queue.shift();
-    if (currentRoot.toString() === to.toString()) {
-      longestPath = currentRoot.distance;
-      console.log(longestPath);
-    }
-    const currentItem = getItemAt(map, currentRoot.position);
-    getPositions(currentRoot.position)
-      .filter((_coords, i) => {
-        if (currentItem === SLOPE_DOWN) {
-          return i === 2;
-        } else if (currentItem === SLOPE_UP) {
-          return i === 0;
-        } else if (currentItem === SLOPE_LEFT) {
-          return i === 3;
-        } else if (currentItem === SLOPE_RIGHT) {
-          return i === 1;
-        }
-        return true;
-      })
-      .filter((coords) => {
-        const nextItem = getItemAt(map, coords);
-        return Boolean(nextItem) && nextItem !== FOREST;
-      })
-      .filter((pos) => !visited.has(pos.toString()))
-      .map((pos) => new TreeNode(pos, currentRoot.distance + 1))
-      .forEach((node) => {
-        queue.push(node);
-        visited.add(node.toString());
-      });
+function setItemAt<T>(map: Map<T>, [x, y]: Coords, value: T) {
+  const row = map[y];
+  if (row) {
+    row[x] = value;
   }
-  return longestPath;
+}
+
+function isSafe<T>(mat: Map<T>, visited: Map<boolean>, [x, y]: Coords) {
+  const m = getItemAt(mat, [x, y]);
+  const v = getItemAt(visited, [x, y]);
+  return (
+    x >= 0 &&
+    x < mat.length &&
+    y >= 0 &&
+    y < mat[0].length &&
+    m !== FOREST &&
+    !v
+  );
+}
+
+const getTopCell = ([x, y]: Coords): Coords => [x, y - 1];
+const getBottomCell = ([x, y]: Coords): Coords => [x, y + 1];
+const getLeftCell = ([x, y]: Coords): Coords => [x - 1, y];
+const getRightCell = ([x, y]: Coords): Coords => [x + 1, y];
+const areEqual = ([x1, y1]: Coords, [x2, y2]: Coords) => x1 === x2 && y1 === y2;
+
+const isBottomSafe = (item: MapItem) => {
+  return item !== SLOPE_UP && item !== SLOPE_LEFT && item !== SLOPE_RIGHT;
+};
+const isUpSafe = (item: MapItem) => {
+  return item !== SLOPE_DOWN && item !== SLOPE_LEFT && item !== SLOPE_RIGHT;
+};
+const isRightSafe = (item: MapItem) => {
+  return item !== SLOPE_UP && item !== SLOPE_DOWN && item !== SLOPE_LEFT;
+};
+const isLeftSafe = (item: MapItem) => {
+  return item !== SLOPE_UP && item !== SLOPE_DOWN && item !== SLOPE_RIGHT;
+};
+
+function findLongestPath(
+  mat: Map<MapItem>,
+  visited: Map<boolean>,
+  source: Coords,
+  dest: Coords,
+  maxDist: number,
+  dist: number
+) {
+  // if the destination is not possible from the current cell
+  const sourceItem = getItemAt(mat, source);
+  if (sourceItem === FOREST) {
+    return 0;
+  }
+
+  // if the destination is found, update `max_dist`
+  if (areEqual(source, dest)) {
+    return Math.max(dist, maxDist);
+  }
+
+  setItemAt(visited, source, true);
+
+  const bottomCell = getBottomCell(source);
+  if (isSafe(mat, visited, bottomCell) && isBottomSafe(sourceItem)) {
+    maxDist = findLongestPath(
+      mat,
+      visited,
+      bottomCell,
+      dest,
+      maxDist,
+      dist + 1
+    );
+  }
+
+  const rightCell = getRightCell(source);
+  if (isSafe(mat, visited, rightCell) && isRightSafe(sourceItem)) {
+    maxDist = findLongestPath(mat, visited, rightCell, dest, maxDist, dist + 1);
+  }
+
+  const topCell = getTopCell(source);
+  if (isSafe(mat, visited, topCell) && isUpSafe(sourceItem)) {
+    maxDist = findLongestPath(mat, visited, topCell, dest, maxDist, dist + 1);
+  }
+
+  const leftCell = getLeftCell(source);
+  if (isSafe(mat, visited, leftCell) && isLeftSafe(sourceItem)) {
+    maxDist = findLongestPath(mat, visited, leftCell, dest, maxDist, dist + 1);
+  }
+
+  // backtrack: remove (i, j) from the visited matrix
+  setItemAt(visited, source, false);
+
+  return maxDist;
 }
 
 function findStart<T>(map: Map<T>): Coords {
@@ -94,7 +125,7 @@ function findEnd<T>(map: Map<T>): Coords {
   return [map.at(-1).findIndex((el) => el === PATH), map.length - 1];
 }
 
-readFile(join(__dirname, TEST_INPUT), (err, data) => {
+readFile(join(__dirname, INPUT), (err, data) => {
   if (err) {
     throw err;
   }
@@ -104,8 +135,13 @@ readFile(join(__dirname, TEST_INPUT), (err, data) => {
     .split('\n')
     .map((line) => line.split('') as MapItem[]);
 
+  const rowsCount = map.length;
+  const colsCount = map[0].length;
   const from = findStart(map);
   const to = findEnd(map);
-  const shortestPath = getLongestPath(map, from, to);
-  console.log(shortestPath);
+  const visited = Array(rowsCount)
+    .fill(undefined)
+    .map(() => Array(colsCount).slice());
+  const longestPath = findLongestPath(map, visited, from, to, 0, 0);
+  console.log(longestPath);
 });
