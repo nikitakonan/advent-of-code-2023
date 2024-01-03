@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "day-1": "tsc ./day-1/1-1/index.ts && node ./day-1/1-1/index.js",
+    "day-16": "tsc ./day-16/16-1/index.ts && node ./day-16/16-1/index.js",
     "day-18": "tsc ./day-18/18-1/index.ts && node ./day-18/18-1/index.js",
     "day-23": "tsc ./day-23/23-1/index.ts && node ./day-23/23-1/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
