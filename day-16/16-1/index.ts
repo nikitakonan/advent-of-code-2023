@@ -25,6 +25,27 @@ function calculateEnergized(grid: Grid, start: Beam) {
   return energized.size;
 }
 
+function getStartBeams(grid: Grid): Beam[] {
+  const rows = grid.length;
+  const columns = grid[0].length;
+  const rowIndices = Array(rows)
+    .fill(undefined)
+    .map((_x, i) => i);
+  const colIndices = Array(columns)
+    .fill(undefined)
+    .map((_x, i) => i);
+  const rightBeams = rowIndices.map((i) => new Beam(Direction.Right, [0, i]));
+  const leftBeams = rowIndices.map(
+    (i) => new Beam(Direction.Left, [columns - 1, i])
+  );
+  const topBeams = colIndices.map((i) => new Beam(Direction.Down, [i, 0]));
+  const bottomBeams = colIndices.map(
+    (i) => new Beam(Direction.Up, [i, rows - 1])
+  );
+
+  return [...rightBeams, ...leftBeams, ...topBeams, ...bottomBeams];
+}
+
 readFile(join(__dirname, INPUT), (err, data) => {
   if (err) {
     throw err;
@@ -35,6 +56,8 @@ readFile(join(__dirname, INPUT), (err, data) => {
     .split('\n')
     .map((line) => line.split('') as GridItem[]);
 
-  const result = calculateEnergized(grid, new Beam(Direction.Right, [0, 0]));
+  const result = getStartBeams(grid)
+    .map((b) => calculateEnergized(grid, b))
+    .reduce((a, b) => Math.max(a, b));
   console.log(result);
 });
